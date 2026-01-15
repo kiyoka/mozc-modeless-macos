@@ -1,0 +1,165 @@
+{
+  "title": "Modeless IME (ctrl-j to activate, Enter to deactivate)",
+  "rules": [
+    {
+      "description": "ctrl-j: IME ON with Romaji conversion (advanced)",
+      "manipulators": [
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "j",
+            "modifiers": {
+              "mandatory": ["control"],
+              "optional": ["caps_lock"]
+            }
+          },
+          "to": [
+            {
+              "shell_command": "/Users/kiyoka/Documents/GitHub/mozc-modeless-macos/convert-romaji.swift"
+            },
+            {
+              "set_variable": {
+                "name": "ime_active",
+                "value": 1
+              }
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "return_or_enter"
+          },
+          "to": [
+            {
+              "key_code": "return_or_enter"
+            },
+            {
+              "key_code": "japanese_eisuu"
+            },
+            {
+              "set_variable": {
+                "name": "ime_active",
+                "value": 0
+              }
+            }
+          ],
+          "conditions": [
+            {
+              "type": "variable_if",
+              "name": "ime_active",
+              "value": 1
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "escape"
+          },
+          "to": [
+            {
+              "key_code": "escape"
+            },
+            {
+              "key_code": "japanese_eisuu"
+            },
+            {
+              "set_variable": {
+                "name": "ime_active",
+                "value": 0
+              }
+            }
+          ],
+          "conditions": [
+            {
+              "type": "variable_if",
+              "name": "ime_active",
+              "value": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "ctrl-j: IME ON, Enter: IME OFF (modeless style - simple)",
+      "manipulators": [
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "j",
+            "modifiers": {
+              "mandatory": ["control"],
+              "optional": ["caps_lock"]
+            }
+          },
+          "to": [
+            {
+              "key_code": "japanese_kana"
+            },
+            {
+              "set_variable": {
+                "name": "ime_active",
+                "value": 1
+              }
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "return_or_enter"
+          },
+          "to": [
+            {
+              "key_code": "return_or_enter"
+            },
+            {
+              "key_code": "japanese_eisuu"
+            },
+            {
+              "set_variable": {
+                "name": "ime_active",
+                "value": 0
+              }
+            }
+          ],
+          "conditions": [
+            {
+              "type": "variable_if",
+              "name": "ime_active",
+              "value": 1
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "escape"
+          },
+          "to": [
+            {
+              "key_code": "escape"
+            },
+            {
+              "key_code": "japanese_eisuu"
+            },
+            {
+              "set_variable": {
+                "name": "ime_active",
+                "value": 0
+              }
+            }
+          ],
+          "conditions": [
+            {
+              "type": "variable_if",
+              "name": "ime_active",
+              "value": 1
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
