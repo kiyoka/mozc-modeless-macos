@@ -104,20 +104,42 @@ func selectAndCopyWord() -> String? {
     return selectedText
 }
 
-// テキストの末尾からローマ字（小文字のa-z）を抽出
-func extractRomajiFromEnd(_ text: String) -> String? {
+// テキストの末尾から sumibi-skip-chars に該当する文字を抽出
+// sumibi-skip-chars: a-zA-Z0-9.,@:`\-+![]?;' \t
+// / が出現したら、そこで停止（/もフェンスとして削除対象）
+// 戻り値: (抽出された文字列, 削除すべき文字数)
+func extractRomajiFromEnd(_ text: String) -> (romaji: String, deleteCount: Int)? {
     var romaji = ""
+    var foundSlash = false
+
+    // sumibi-skip-chars に含まれる文字のセット
+    let sumibiChars = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,@:`-+![]?;' \t")
 
     // 末尾から1文字ずつ見ていく
     for char in text.reversed() {
-        if char.isLowercase && char.isASCII && char >= "a" && char <= "z" {
+        // / が出現したら停止（フェンスとして機能）
+        if char == "/" {
+            foundSlash = true
+            break
+        }
+
+        // sumibi-skip-chars に含まれる文字なら追加
+        if let scalar = char.unicodeScalars.first, sumibiChars.contains(scalar) {
             romaji.insert(char, at: romaji.startIndex)
         } else {
+            // sumibi-skip-chars に含まれない文字が出現したら停止
             break
         }
     }
 
-    return romaji.isEmpty ? nil : romaji
+    if romaji.isEmpty {
+        return nil
+    }
+
+    // 削除文字数: ローマ字の文字数 + (/ が見つかった場合は +1)
+    let deleteCount = foundSlash ? romaji.count + 1 : romaji.count
+
+    return (romaji: romaji, deleteCount: deleteCount)
 }
 
 // メイン処理
@@ -145,7 +167,7 @@ func main() {
     writeDebugLog("選択されたテキスト: \(selectedText)")
 
     // 選択されたテキストの末尾からローマ字を抽出
-    guard let romaji = extractRomajiFromEnd(selectedText), !romaji.isEmpty else {
+    guard let result = extractRomajiFromEnd(selectedText) else {
         writeDebugLog("⚠️ 末尾にローマ字なし: \(selectedText) -> 通常のIMEオンのみ")
         // 選択を解除（右矢印）
         sendKeyPress(0x7C) // Right arrow
@@ -153,18 +175,21 @@ func main() {
         exit(0)
     }
 
-    writeDebugLog("✅ 検出されたローマ字: \(romaji) (文字数: \(romaji.count))")
+    let romaji = result.romaji
+    let deleteCount = result.deleteCount
+
+    writeDebugLog("✅ 検出されたローマ字: \(romaji) (文字数: \(romaji.count), 削除文字数: \(deleteCount))")
 
     // 選択を解除（右矢印でカーソル位置を選択範囲の最後に移動）
     writeDebugLog("➡️  選択を解除")
     sendKeyPress(0x7C) // Right arrow
     usleep(50000) // 50ms待機
 
-    // ローマ字の文字数分 Backspace を送信
-    writeDebugLog("🔙 Backspaceを\(romaji.count)回送信")
-    for i in 0..<romaji.count {
+    // deleteCount の文字数分 Backspace を送信（/ も含む）
+    writeDebugLog("🔙 Backspaceを\(deleteCount)回送信")
+    for i in 0..<deleteCount {
         sendKeyPress(kVK_Delete)
-        writeDebugLog("  Backspace \(i+1)/\(romaji.count)")
+        writeDebugLog("  Backspace \(i+1)/\(deleteCount)")
         usleep(10000) // 10ms待機
     }
     usleep(50000) // 50ms待機

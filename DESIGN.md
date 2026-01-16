@@ -62,8 +62,11 @@ AXUIElementCopyAttributeValue(
 
 **解決策:**
 選択されたテキストから末尾のローマ字部分のみを抽出する関数を実装。
+（注: この実装は後に課題5で sumibi.el 互換性のため拡張されました）
 
+**初期実装（シンプル版）:**
 ```swift
+// 小文字のローマ字（a-z）のみを抽出
 func extractRomajiFromEnd(_ text: String) -> String? {
     var romaji = ""
 
@@ -86,6 +89,9 @@ func extractRomajiFromEnd(_ text: String) -> String? {
 - 抽出: 「nihongo」
 - 削除: 7文字分 Backspace
 - 結果: 「日本語▼にほんご」
+
+**現在の実装:**
+課題5で sumibi.el との互換性のため拡張。詳細は「課題5: sumibi.el との互換性」を参照。
 
 ### 課題2: Emacs での ctrl-j の挙動
 
@@ -138,6 +144,69 @@ README.md に詳細な説明を追加：
 - 最近のバージョンでは `karabiner_grabber` は存在しない
 - 代わりに `Karabiner-Elements Privileged Daemons v2.app` を使用
 - 正確なパスと手動追加方法を記載
+
+### 課題5: sumibi.el との互換性
+
+**問題:**
+Emacs の sumibi.el と同じ挙動を実現したい。具体的には：
+1. `/` をフェンス文字として使用（区切りとして機能し、削除対象にも含まれる）
+2. sumibi-skip-chars と同じ文字セット（`a-zA-Z0-9.,@:\`-+![]?;' \t`）を対象とする
+
+**解決策:**
+`extractRomajiFromEnd()` 関数を拡張し、タプル `(romaji: String, deleteCount: Int)?` を返すように変更。
+
+```swift
+// テキストの末尾から sumibi-skip-chars に該当する文字を抽出
+// sumibi-skip-chars: a-zA-Z0-9.,@:`\-+![]?;' \t
+// / が出現したら、そこで停止（/もフェンスとして削除対象）
+// 戻り値: (抽出された文字列, 削除すべき文字数)
+func extractRomajiFromEnd(_ text: String) -> (romaji: String, deleteCount: Int)? {
+    var romaji = ""
+    var foundSlash = false
+
+    // sumibi-skip-chars に含まれる文字のセット
+    let sumibiChars = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,@:`-+![]?;' \t")
+
+    // 末尾から1文字ずつ見ていく
+    for char in text.reversed() {
+        // / が出現したら停止（フェンスとして機能）
+        if char == "/" {
+            foundSlash = true
+            break
+        }
+
+        // sumibi-skip-chars に含まれる文字なら追加
+        if let scalar = char.unicodeScalars.first, sumibiChars.contains(scalar) {
+            romaji.insert(char, at: romaji.startIndex)
+        } else {
+            // sumibi-skip-chars に含まれない文字が出現したら停止
+            break
+        }
+    }
+
+    if romaji.isEmpty {
+        return nil
+    }
+
+    // 削除文字数: ローマ字の文字数 + (/ が見つかった場合は +1)
+    let deleteCount = foundSlash ? romaji.count + 1 : romaji.count
+
+    return (romaji: romaji, deleteCount: deleteCount)
+}
+```
+
+**動作例:**
+- 入力: `path/to/file.txt█`
+- 選択: `path/to/file.txt`
+- 抽出: `file.txt` (romaji)
+- 削除: 9文字（`/file.txt`）
+- 結果: `path/to/▼ふぃぇ.txt`
+
+**ポイント:**
+- `/` が検出された場合は `foundSlash` フラグを立てる
+- 削除文字数 (`deleteCount`) には `/` も含まれる
+- Backspace 送信時は `deleteCount` を使用
+- IME には抽出された `romaji` のみを送信
 
 ## アーキテクチャ
 
@@ -368,6 +437,7 @@ convert-romaji.swift（Accessibility API版）には `--test` オプションを
 - **v0.0.3**: 高度版をクリップボード版に変更（互換性向上）
 - **v0.0.4**: 日本語混在対応（末尾からローマ字抽出）
 - **v0.0.5**: Emacs 除外機能追加
+- **v0.0.6**: sumibi.el 互換性対応（`/` フェンス機能、sumibi-skip-chars 対応）
 
 ## ライセンス
 
