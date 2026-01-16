@@ -327,3 +327,6 @@ func sendKeyPress(_ keyCode: CGKeyCode) {
 このファイルを読んで、Option 1 の実装方法で実装してみてください。
 必要であれば、modeless-ime.jsonの中身も書き換えてください。
 	
+karabinerでctrl+jを何らかのキーに割り当てた場合、emacsというアプリ上のctrl-jの挙動も変わってしまいますか？
+
+今、実装できている、convert-romaji.swiftとmodeless-ime.jsonのインストールの手順をREADME.mdに反映してください。

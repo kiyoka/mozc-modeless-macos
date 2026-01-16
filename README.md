@@ -25,39 +25,82 @@ ctrl-j を押すと英数モードから IME オンの状態になり、IMEで�
 
 - macOS
 - [Karabiner-Elements](https://karabiner-elements.pqrs.org/) がインストール済み
+- Google 日本語入力（高度版を使う場合）
 
 ### 手順
 
-1. このリポジトリをクローン:
-   ```bash
-   git clone https://github.com/YOUR_USERNAME/karabiner-modeless-ime.git
-   cd karabiner-modeless-ime
-   ```
+#### 1. リポジトリをクローン
 
-2. 設定ファイルを Karabiner-Elements の設定フォルダにコピー:
-   ```bash
-   cp modeless-ime.json ~/.config/karabiner/assets/complex_modifications/
-   ```
+```bash
+git clone https://github.com/YOUR_USERNAME/mozc-modeless-macos.git
+cd mozc-modeless-macos
+```
 
-3. Karabiner-Elements を開く → **Complex Modifications** → **Add rule**
+#### 2. シンプル版のみを使う場合
 
-4. ルールを選択して有効にする:
-   - **シンプル版**: 「ctrl-j: IME ON, Enter: IME OFF (modeless style - simple)」
-   - **高度版**: 「ctrl-j: IME ON with Romaji conversion (advanced)」
+シンプル版は Swift スクリプトを使わず、Karabiner のみで動作します。
 
-### 高度版を使う場合の追加設定
+```bash
+# 設定ファイルをコピー
+cp modeless-ime.json ~/.config/karabiner/assets/complex_modifications/
+```
 
-高度版（ローマ字自動変換）を使う場合は、以下の追加設定が必要です：
+その後、Karabiner-Elements を開いて設定します：
 
-1. `modeless-ime.json` を編集して、`convert-romaji.swift` のパスを自分の環境に合わせる:
-   ```json
-   "shell_command": "/Users/YOUR_USERNAME/path/to/convert-romaji.swift"
-   ```
+1. **Complex Modifications** → **Add rule** をクリック
+2. **「ctrl-j: IME ON, Enter: IME OFF (modeless style - simple)」** を有効にする
 
-2. アクセシビリティ権限を付与:
-   - **システム設定** → **プライバシーとセキュリティ** → **アクセシビリティ**
-   - **Karabiner-Elements** と **karabiner_grabber** にチェックを入れる
-   - スクリプト初回実行時にもプロンプトが表示されます
+これで完了です。
+
+#### 3. 高度版（ローマ字自動変換）を使う場合
+
+高度版は、英数モードで入力したローマ字を自動的に IME に渡す機能を提供します。
+
+##### 3-1. Swiftスクリプトを配置
+
+```bash
+# スクリプトに実行権限を付与
+chmod +x convert-romaji.swift
+
+# スクリプトを適切な場所に配置（例: ホームディレクトリ）
+cp convert-romaji.swift ~/convert-romaji.swift
+```
+
+##### 3-2. modeless-ime.json のパスを編集
+
+`modeless-ime.json` の 18行目を編集して、convert-romaji.swift の実際のパスに変更します：
+
+```json
+"shell_command": "/Users/YOUR_USERNAME/convert-romaji.swift"
+```
+
+例えば、ユーザー名が `taro` で、ホームディレクトリに配置した場合：
+
+```json
+"shell_command": "/Users/taro/convert-romaji.swift"
+```
+
+##### 3-3. 設定ファイルをKarabiner-Elementsにコピー
+
+```bash
+cp modeless-ime.json ~/.config/karabiner/assets/complex_modifications/
+```
+
+##### 3-4. Karabiner-Elementsで有効化
+
+1. **Karabiner-Elements** を開く
+2. **Complex Modifications** → **Add rule** をクリック
+3. **「ctrl-j: IME ON with Romaji conversion (advanced)」** を有効にする
+
+##### 3-5. アクセシビリティ権限を付与
+
+高度版はテキストフィールドの内容を読み取るため、アクセシビリティ権限が必要です。
+
+1. **システム設定** → **プライバシーとセキュリティ** → **アクセシビリティ**
+2. 以下のアプリにチェックを入れる：
+   - **Karabiner-Elements**
+   - **karabiner_grabber**
+3. 初回実行時にプロンプトが表示された場合は、許可してください
 
 ## 使い方
 
