@@ -104,12 +104,20 @@ func selectAndCopyWord() -> String? {
     return selectedText
 }
 
-// ローマ字かどうか判定（小文字のアルファベットのみ）
-func isRomaji(_ text: String) -> Bool {
-    let romajiPattern = "^[a-z]+$"
-    let regex = try? NSRegularExpression(pattern: romajiPattern)
-    let range = NSRange(location: 0, length: text.utf16.count)
-    return regex?.firstMatch(in: text, range: range) != nil
+// テキストの末尾からローマ字（小文字のa-z）を抽出
+func extractRomajiFromEnd(_ text: String) -> String? {
+    var romaji = ""
+
+    // 末尾から1文字ずつ見ていく
+    for char in text.reversed() {
+        if char.isLowercase && char.isASCII && char >= "a" && char <= "z" {
+            romaji.insert(char, at: romaji.startIndex)
+        } else {
+            break
+        }
+    }
+
+    return romaji.isEmpty ? nil : romaji
 }
 
 // メイン処理
@@ -134,20 +142,31 @@ func main() {
         exit(0)
     }
 
-    // 空文字列またはローマ字でない場合
-    if selectedText.isEmpty || !isRomaji(selectedText) {
-        writeDebugLog("⚠️ ローマ字ではない: \(selectedText) -> 通常のIMEオンのみ")
+    writeDebugLog("選択されたテキスト: \(selectedText)")
+
+    // 選択されたテキストの末尾からローマ字を抽出
+    guard let romaji = extractRomajiFromEnd(selectedText), !romaji.isEmpty else {
+        writeDebugLog("⚠️ 末尾にローマ字なし: \(selectedText) -> 通常のIMEオンのみ")
         // 選択を解除（右矢印）
         sendKeyPress(0x7C) // Right arrow
         sendKeyPress(kVK_JIS_Kana)
         exit(0)
     }
 
-    writeDebugLog("✅ 検出されたローマ字: \(selectedText) (文字数: \(selectedText.count))")
+    writeDebugLog("✅ 検出されたローマ字: \(romaji) (文字数: \(romaji.count))")
 
-    // 選択範囲を削除
-    writeDebugLog("🗑️  選択範囲を削除")
-    sendKeyPress(kVK_Delete)
+    // 選択を解除（右矢印でカーソル位置を選択範囲の最後に移動）
+    writeDebugLog("➡️  選択を解除")
+    sendKeyPress(0x7C) // Right arrow
+    usleep(50000) // 50ms待機
+
+    // ローマ字の文字数分 Backspace を送信
+    writeDebugLog("🔙 Backspaceを\(romaji.count)回送信")
+    for i in 0..<romaji.count {
+        sendKeyPress(kVK_Delete)
+        writeDebugLog("  Backspace \(i+1)/\(romaji.count)")
+        usleep(10000) // 10ms待機
+    }
     usleep(50000) // 50ms待機
 
     // IMEをオン
@@ -156,8 +175,8 @@ func main() {
     usleep(150000) // 150ms待機（IME起動を待つ）
 
     // ローマ字を1文字ずつ送信
-    writeDebugLog("⌨️  ローマ字を再送信: \(selectedText)")
-    for char in selectedText.lowercased() {
+    writeDebugLog("⌨️  ローマ字を再送信: \(romaji)")
+    for char in romaji.lowercased() {
         if let keyCode = getKeyCode(for: char) {
             sendKeyPress(keyCode)
             writeDebugLog("  送信: \(char)")
