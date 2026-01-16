@@ -15,13 +15,23 @@
           },
           "to": [
             {
-              "shell_command": "/Users/kiyoka/Documents/GitHub/mozc-modeless-macos/convert-romaji.swift"
+              "shell_command": "/Users/kiyoka/Documents/GitHub/mozc-modeless-macos/convert-romaji-clipboard.swift"
             },
             {
               "set_variable": {
                 "name": "ime_active",
                 "value": 1
               }
+            }
+          ],
+          "conditions": [
+            {
+              "type": "frontmost_application_unless",
+              "bundle_identifiers": [
+                "^org\\.gnu\\.Emacs$",
+                "^org\\.gnu\\.AquamacsEmacs$",
+                "^org\\.gnu\\.Aquamacs$"
+              ]
             }
           ]
         },
@@ -102,6 +112,16 @@
                 "name": "ime_active",
                 "value": 1
               }
+            }
+          ],
+          "conditions": [
+            {
+              "type": "frontmost_application_unless",
+              "bundle_identifiers": [
+                "^org\\.gnu\\.Emacs$",
+                "^org\\.gnu\\.AquamacsEmacs$",
+                "^org\\.gnu\\.Aquamacs$"
+              ]
             }
           ]
         },

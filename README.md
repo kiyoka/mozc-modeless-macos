@@ -5,8 +5,8 @@ macOSでKarabiner-Elements を使ってmozc/Google日本語入力をモードレ
 
 ## 概要
 
-ctrl-j を押すと英数モードから IME オンの状態になり、IMEで変換結果を確定すると、自動的に IME オフに戻ります。
-それにより、英数したいときにIMEモード オンになっていて入力誤りをするというモードエラーをなくします。
+ctrl-j を押すことで英数モードから IME をオンにし、変換確定後は自動的に英数モードに戻ります。
+これにより、IME のオン/オフ状態を気にせず入力でき、モードの切り替え忘れによる入力ミスを防ぎます。
 
 ### 動作フロー
 
@@ -56,28 +56,34 @@ cp modeless-ime.json ~/.config/karabiner/assets/complex_modifications/
 
 高度版は、英数モードで入力したローマ字を自動的に IME に渡す機能を提供します。
 
+**動作の仕組み:**
+- Cmd+Shift+Left でカーソル前の単語を選択
+- クリップボード経由でローマ字を取得
+- 選択範囲を削除して IME オン
+- ローマ字を再送信して変換候補を表示
+
 ##### 3-1. Swiftスクリプトを配置
 
 ```bash
 # スクリプトに実行権限を付与
-chmod +x convert-romaji.swift
+chmod +x convert-romaji-clipboard.swift
 
 # スクリプトを適切な場所に配置（例: ホームディレクトリ）
-cp convert-romaji.swift ~/convert-romaji.swift
+cp convert-romaji-clipboard.swift ~/convert-romaji-clipboard.swift
 ```
 
 ##### 3-2. modeless-ime.json のパスを編集
 
-`modeless-ime.json` の 18行目を編集して、convert-romaji.swift の実際のパスに変更します：
+`modeless-ime.json` の 18行目を編集して、convert-romaji-clipboard.swift の実際のパスに変更します：
 
 ```json
-"shell_command": "/Users/YOUR_USERNAME/convert-romaji.swift"
+"shell_command": "/Users/YOUR_USERNAME/convert-romaji-clipboard.swift"
 ```
 
 例えば、ユーザー名が `taro` で、ホームディレクトリに配置した場合：
 
 ```json
-"shell_command": "/Users/taro/convert-romaji.swift"
+"shell_command": "/Users/taro/convert-romaji-clipboard.swift"
 ```
 
 ##### 3-3. 設定ファイルをKarabiner-Elementsにコピー
@@ -94,13 +100,29 @@ cp modeless-ime.json ~/.config/karabiner/assets/complex_modifications/
 
 ##### 3-5. アクセシビリティ権限を付与
 
-高度版はテキストフィールドの内容を読み取るため、アクセシビリティ権限が必要です。
+高度版はキーボードイベントの送信のため、アクセシビリティ権限が必要です。
 
 1. **システム設定** → **プライバシーとセキュリティ** → **アクセシビリティ**
 2. 以下のアプリにチェックを入れる：
    - **Karabiner-Elements**
-   - **karabiner_grabber**
+   - **Karabiner-Elements Privileged Daemons v2**（必要に応じて）
 3. 初回実行時にプロンプトが表示された場合は、許可してください
+
+##### 3-6. 動作確認
+
+```bash
+# TextEdit でテスト
+open -a TextEdit
+```
+
+1. `nihongo` と入力
+2. **ctrl-j** を押す
+3. `nihongo` が削除されて `▼にほんご` のように変換候補が表示されれば成功
+
+**デバッグログの確認:**
+```bash
+cat ~/convert-romaji-debug.log
+```
 
 ## 使い方
 
@@ -129,8 +151,12 @@ IME モード: ▼にほんご（変換候補表示）
 
 **制限事項:**
 - macOS のアクセシビリティ権限が必要
-- すべてのアプリで動作するとは限りません
-- パスワード入力欄などでは動作しません
+- カーソル前の「単語」を選択するため、スペースや記号の前までしか選択されない
+  - 例: `hello world` → `world` のみ選択
+  - 例: `foo-bar` → `bar` のみ選択
+- 小文字のローマ字（a-z）のみ対応（大文字は無視される）
+- パスワード入力欄などセキュリティ保護されたフィールドでは動作しません
+- ほとんどのmacOSアプリで動作（TextEdit、VSCode、ブラウザなど）
 
 ## UI デザインの観点から
 
