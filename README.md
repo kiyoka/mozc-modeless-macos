@@ -61,9 +61,11 @@ cd mozc-modeless-macos
 
 **システム設定** → **プライバシーとセキュリティ** → **アクセシビリティ**
 
-以下のアプリを追加:
-- `/Applications/Karabiner-Elements.app`
-- `/Library/Application Support/org.pqrs/Karabiner-Elements/Karabiner-Elements Privileged Daemons v2.app`
+以下の2つのアプリを追加:
+1. `/Applications/Karabiner-Elements.app`
+2. `/Library/Application Support/org.pqrs/Karabiner-Elements/Karabiner-Elements Privileged Daemons v2.app`
+
+**注意:** 通常はこの2つで十分です。Karabiner-Core-Service は不要です。
 
 ### 5. 動作確認
 
@@ -151,6 +153,8 @@ cp modeless-ime.json ~/.config/karabiner/assets/complex_modifications/
 
 **アクセシビリティに追加すべきアプリ:**
 
+以下の2つのアプリを追加します：
+
 1. **Karabiner-Elements メインアプリ**
    ```
    /Applications/Karabiner-Elements.app
@@ -161,10 +165,7 @@ cp modeless-ime.json ~/.config/karabiner/assets/complex_modifications/
    /Library/Application Support/org.pqrs/Karabiner-Elements/Karabiner-Elements Privileged Daemons v2.app
    ```
 
-3. **Karabiner-Core-Service** (必要に応じて)
-   ```
-   /Library/Application Support/org.pqrs/Karabiner-Elements/Karabiner-Core-Service.app
-   ```
+**注意:** 通常はこの2つで十分です。Karabiner-Core-Service は不要です。
 
 **手動でアクセシビリティに追加する方法:**
 
