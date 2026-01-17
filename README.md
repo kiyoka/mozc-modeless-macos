@@ -27,14 +27,57 @@ ctrl-j を押すことで英数モードから IME をオンにし、変換確�
 - [Karabiner-Elements](https://karabiner-elements.pqrs.org/) がインストール済み
 - Google 日本語入力（高度版を使う場合）
 
-### 手順
+## クイックスタート（推奨） 🚀
 
-#### 1. リポジトリをクローン
+自動インストールスクリプトを使えば、簡単にセットアップできます。
+
+### 1. リポジトリをクローン
 
 ```bash
 git clone https://github.com/YOUR_USERNAME/mozc-modeless-macos.git
 cd mozc-modeless-macos
 ```
+
+### 2. インストールスクリプトを実行
+
+```bash
+./install.sh
+```
+
+インストーラーが自動的に：
+- ✅ Swiftスクリプトを `~/.local/bin/mozc-modeless-macos/` にコピー
+- ✅ パスを自動設定
+- ✅ Karabiner設定ファイルをコピー
+
+### 3. Karabiner-Elements で有効化
+
+1. **Karabiner-Elements** を開く
+2. **Complex Modifications** → **Add rule** をクリック
+3. 以下のいずれかを有効にする:
+   - **「ctrl-j: IME ON with Romaji conversion (advanced)」** - 高度版（ローマ字自動変換）
+   - **「ctrl-j: IME ON, Enter: IME OFF (modeless style - simple)」** - シンプル版
+
+### 4. アクセシビリティ権限を設定（高度版のみ必要）
+
+**システム設定** → **プライバシーとセキュリティ** → **アクセシビリティ**
+
+以下のアプリを追加:
+- `/Applications/Karabiner-Elements.app`
+- `/Library/Application Support/org.pqrs/Karabiner-Elements/Karabiner-Elements Privileged Daemons v2.app`
+
+### 5. 動作確認
+
+TextEdit で `nihongo` と入力して **ctrl-j** を押す
+- 成功: `▼にほんご` のように変換候補が表示される
+
+---
+
+## 手動インストール（上級者向け）
+
+<details>
+<summary>クリックして展開</summary>
+
+### 手順
 
 #### 2. シンプル版のみを使う場合
 
@@ -160,7 +203,7 @@ open -a TextEdit
 
 **デバッグログの確認:**
 ```bash
-cat ~/convert-romaji-debug.log
+cat ~/.local/bin/mozc-modeless-macos/debug.log
 ```
 
 期待されるログ:
@@ -168,6 +211,93 @@ cat ~/convert-romaji-debug.log
 - `✅ 検出されたローマ字: ...` で末尾のローマ字が抽出される
 - `🔙 Backspace...` でローマ字の文字数分削除される
 - `⌨️ ローマ字を再送信: ...` で再入力される
+
+</details>
+
+---
+
+## トラブルシューティング 🔧
+
+### ctrl-j を押しても何も起こらない
+
+**確認事項:**
+
+1. **Karabiner-Elements でルールが有効になっているか**
+   - Karabiner-Elements を開く
+   - Complex Modifications タブを確認
+   - "ctrl-j: IME ON with Romaji conversion (advanced)" が有効（緑のチェックマーク）になっているか
+
+2. **デバッグログを確認**
+   ```bash
+   cat ~/.local/bin/mozc-modeless-macos/debug.log
+   ```
+   - ログが存在しない場合: スクリプトが実行されていない
+   - ログが存在する場合: 内容を確認してエラーメッセージを探す
+
+3. **スクリプトが正しい場所にあるか**
+   ```bash
+   ls -la ~/.local/bin/mozc-modeless-macos/convert-romaji-clipboard.swift
+   ```
+
+4. **Karabiner-Elements を再起動**
+   ```bash
+   killall Karabiner-Elements
+   open /Applications/Karabiner-Elements.app
+   ```
+
+5. **アクセシビリティ権限が付与されているか（高度版のみ）**
+   - システム設定 → プライバシーとセキュリティ → アクセシビリティ
+   - Karabiner-Elements と Karabiner-Elements Privileged Daemons v2 にチェックが入っているか
+
+### 変換候補が表示されない
+
+**原因と対策:**
+
+1. **Google 日本語入力が有効になっていない**
+   - システム設定 → キーボード → 入力ソース
+   - Google 日本語入力が追加されているか確認
+
+2. **待機時間が短すぎる可能性**
+   - 古いMacの場合、待機時間を長くする必要があるかもしれません
+   - `convert-romaji-clipboard.swift` の `usleep(5000)` を `usleep(10000)` に変更
+
+### Emacs で ctrl-j が動作しない
+
+これは意図的な動作です。Emacs では ctrl-j が重要なコマンド（`newline-and-indent`）のため、除外設定されています。
+
+**Emacs でも使いたい場合:**
+`modeless-ime.json` から以下の部分を削除してください：
+```json
+"conditions": [
+  {
+    "type": "frontmost_application_unless",
+    "bundle_identifiers": [
+      "^org\\.gnu\\.Emacs$",
+      "^org\\.gnu\\.AquamacsEmacs$",
+      "^org\\.gnu\\.Aquamacs$"
+    ]
+  }
+]
+```
+
+---
+
+## アンインストール
+
+インストールしたファイルを削除するには、アンインストールスクリプトを実行してください：
+
+```bash
+cd mozc-modeless-macos
+./uninstall.sh
+```
+
+アンインストーラーは以下を削除します：
+- `~/.local/bin/mozc-modeless-macos/`（Swiftスクリプトとログ）
+- `~/.config/karabiner/assets/complex_modifications/modeless-ime.json`（Karabiner設定）
+
+**注意:** Karabiner-Elements 本体は削除されません。
+
+---
 
 ## 使い方
 
@@ -207,15 +337,24 @@ IME モード: 日本語▼にほんご（末尾のローマ字のみ変換）
 
 **動作の仕組み:**
 - Cmd+Shift+Left でカーソル前の単語を選択
-- 選択範囲の末尾から連続するローマ字（a-z）を抽出
+- 選択範囲の末尾から sumibi-skip-chars に該当する文字を抽出
 - ローマ字部分のみを削除して IME に再送信
+- 自動的にスペースキーを送信して変換候補を表示
+
+**対応文字（sumibi.el 互換）:**
+- `a-zA-Z0-9.,@:\`-+![]?;' \t`（大文字・数字・記号・スペース・タブに対応）
+- `/` はフェンス文字として機能（`/` で抽出が停止し、`/` も削除される）
+
+**動作例3: パス入力**
+```
+英数モード: path/to/file.txt█
+   ↓ ctrl-j
+IME モード: path/to/▼ふぃれてきすと（`/file.txt` が変換対象）
+```
 
 **制限事項:**
 - macOS のアクセシビリティ権限が必要
-- 小文字のローマ字（a-z）のみ対応（大文字は無視される）
 - カーソル前の「単語」を選択するため、スペースや記号で区切られた最後の部分のみが対象
-  - 例: `hello world` → `world` のみ対象
-  - 例: `foo-bar` → `bar` のみ対象
 - パスワード入力欄などセキュリティ保護されたフィールドでは動作しません
 - ほとんどのmacOSアプリで動作（TextEdit、VSCode、ブラウザなど）
 

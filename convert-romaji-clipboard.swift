@@ -12,9 +12,15 @@ let kVK_Space: CGKeyCode = 0x31
 
 // デバッグログを書き込む関数
 func writeDebugLog(_ message: String) {
-    let logPath = NSHomeDirectory() + "/convert-romaji-debug.log"
+    let logDir = NSHomeDirectory() + "/.local/bin/mozc-modeless-macos"
+    let logPath = logDir + "/debug.log"
     let timestamp = Date()
     let logMessage = "[\(timestamp)] \(message)\n"
+
+    // ログディレクトリが存在しない場合は作成
+    if !FileManager.default.fileExists(atPath: logDir) {
+        try? FileManager.default.createDirectory(atPath: logDir, withIntermediateDirectories: true, attributes: nil)
+    }
 
     if let data = logMessage.data(using: .utf8) {
         if FileManager.default.fileExists(atPath: logPath) {

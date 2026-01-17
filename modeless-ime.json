@@ -15,7 +15,7 @@
           },
           "to": [
             {
-              "shell_command": "/Users/kiyoka/Documents/GitHub/mozc-modeless-macos/convert-romaji-clipboard.swift"
+              "shell_command": "/Users/kiyoka/.local/bin/mozc-modeless-macos/convert-romaji-clipboard.swift"
             },
             {
               "set_variable": {
