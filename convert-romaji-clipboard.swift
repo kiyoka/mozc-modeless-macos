@@ -8,6 +8,7 @@ let kVK_Delete: CGKeyCode = 0x33
 let kVK_JIS_Kana: CGKeyCode = 0x68
 let kVK_ANSI_C: CGKeyCode = 0x08
 let kVK_LeftArrow: CGKeyCode = 0x7B
+let kVK_Space: CGKeyCode = 0x31
 
 // デバッグログを書き込む関数
 func writeDebugLog(_ message: String) {
@@ -38,9 +39,9 @@ func sendKeyPress(_ keyCode: CGKeyCode, withModifiers modifiers: CGEventFlags = 
     keyUp?.flags = modifiers
 
     keyDown?.post(tap: .cghidEventTap)
-    usleep(10000) // 10ms待機
+    usleep(5000) // 5ms待機（互換性重視の最適化）
     keyUp?.post(tap: .cghidEventTap)
-    usleep(10000)
+    usleep(5000)
 }
 
 // 文字からキーコードへの変換マップ
@@ -207,6 +208,12 @@ func main() {
             writeDebugLog("  送信: \(char)")
         }
     }
+
+    // スペースキーを送信して変換
+    writeDebugLog("␣ スペースキーを送信して変換")
+    usleep(50000) // 50ms待機（ローマ字入力完了を待つ）
+    sendKeyPress(kVK_Space)
+    writeDebugLog("  変換確定")
 
     writeDebugLog("=== convert-romaji-clipboard.swift 終了 ===\n")
 }
