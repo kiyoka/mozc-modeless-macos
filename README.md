@@ -53,11 +53,9 @@ cd mozc-modeless-macos
 
 1. **Karabiner-Elements** を開く
 2. **Complex Modifications** → **Add rule** をクリック
-3. 以下のいずれかを有効にする:
-   - **「ctrl-j: IME ON with Romaji conversion (advanced)」** - 高度版（ローマ字自動変換）
-   - **「ctrl-j: IME ON, Enter: IME OFF (modeless style - simple)」** - シンプル版
+3. **「ctrl-j: IME ON with Romaji conversion (advanced)」** を有効にする
 
-### 4. アクセシビリティ権限を設定（高度版のみ必要）
+### 4. アクセシビリティ権限を設定
 
 **システム設定** → **プライバシーとセキュリティ** → **アクセシビリティ**
 
@@ -81,34 +79,16 @@ TextEdit で `nihongo` と入力して **ctrl-j** を押す
 
 ### 手順
 
-#### 2. シンプル版のみを使う場合
-
-シンプル版は Swift スクリプトを使わず、Karabiner のみで動作します。
-
-```bash
-# 設定ファイルをコピー
-cp modeless-ime.json ~/.config/karabiner/assets/complex_modifications/
-```
-
-その後、Karabiner-Elements を開いて設定します：
-
-1. **Complex Modifications** → **Add rule** をクリック
-2. **「ctrl-j: IME ON, Enter: IME OFF (modeless style - simple)」** を有効にする
-
-これで完了です。
-
-#### 3. 高度版（ローマ字自動変換）を使う場合
-
-高度版は、カーソル前のローマ字を自動的に IME に変換する機能を提供します。**日本語とローマ字が混在していても、末尾のローマ字部分のみを変換できます。**
+カーソル前のローマ字を自動的に IME に変換する機能を提供します。**日本語とローマ字が混在していても、末尾のローマ字部分のみを変換できます。**
 
 **動作の仕組み:**
 - Cmd+Shift+Left でカーソル前の単語を選択
 - クリップボード経由でテキストを取得
-- 選択範囲の末尾から連続するローマ字（a-z）を抽出
+- 選択範囲の末尾から sumibi-skip-chars に該当する文字を抽出
 - ローマ字部分のみを削除して IME オン
 - ローマ字を再送信して変換候補を表示
 
-##### 3-1. Swiftスクリプトを配置
+#### 1. Swiftスクリプトを配置
 
 ```bash
 # スクリプトに実行権限を付与
@@ -118,7 +98,7 @@ chmod +x convert-romaji-clipboard.swift
 cp convert-romaji-clipboard.swift ~/convert-romaji-clipboard.swift
 ```
 
-##### 3-2. modeless-ime.json のパスを編集
+#### 2. modeless-ime.json のパスを編集
 
 `modeless-ime.json` の 18行目を編集して、convert-romaji-clipboard.swift の実際のパスに変更します：
 
@@ -132,19 +112,19 @@ cp convert-romaji-clipboard.swift ~/convert-romaji-clipboard.swift
 "shell_command": "/Users/taro/convert-romaji-clipboard.swift"
 ```
 
-##### 3-3. 設定ファイルをKarabiner-Elementsにコピー
+#### 3. 設定ファイルをKarabiner-Elementsにコピー
 
 ```bash
 cp modeless-ime.json ~/.config/karabiner/assets/complex_modifications/
 ```
 
-##### 3-4. Karabiner-Elementsで有効化
+#### 4. Karabiner-Elementsで有効化
 
 1. **Karabiner-Elements** を開く
 2. **Complex Modifications** → **Add rule** をクリック
 3. **「ctrl-j: IME ON with Romaji conversion (advanced)」** を有効にする
 
-##### 3-5. アクセシビリティ権限を付与
+#### 5. アクセシビリティ権限を付与
 
 高度版はキーボードイベントの送信のため、アクセシビリティ権限が必要です。
 
@@ -185,7 +165,7 @@ open /Applications/Karabiner-Elements.app
 
 起動後、システムがアクセシビリティ権限を要求するので、「システム設定を開く」をクリックして許可してください。
 
-##### 3-6. 動作確認
+#### 6. 動作確認
 
 ```bash
 # TextEdit でテスト
@@ -301,16 +281,6 @@ cd mozc-modeless-macos
 ---
 
 ## 使い方
-
-このプロジェクトでは、2つのモードを提供しています：
-
-### シンプル版（Simple）
-
-- **ctrl-j**: IME をオンにする（日本語入力モード）
-- **Enter**: 入力確定後、IME をオフにする（英数モードに戻る）
-- **Escape**: 入力をキャンセルし、IME をオフにする
-
-### 高度版（Advanced - ローマ字自動変換）
 
 カーソル前のローマ字を自動的に IME に変換します。**日本語とローマ字が混在していても動作します。**
 
