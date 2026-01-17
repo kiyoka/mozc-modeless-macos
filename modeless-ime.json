@@ -2,7 +2,7 @@
   "title": "Modeless IME (ctrl-j to activate, Enter to deactivate)",
   "rules": [
     {
-      "description": "ctrl-j: IME ON with Romaji conversion (advanced)",
+      "description": "ctrl-j: IME ON with Romaji conversion",
       "manipulators": [
         {
           "type": "basic",

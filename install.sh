@@ -83,7 +83,7 @@ echo -e "${YELLOW}次のステップ:${NC}"
 echo ""
 echo "  ${BLUE}1.${NC} Karabiner-Elements を開く"
 echo "  ${BLUE}2.${NC} Complex Modifications → Add rule をクリック"
-echo "  ${BLUE}3.${NC} 'ctrl-j: IME ON with Romaji conversion (advanced)' を有効にする"
+echo "  ${BLUE}3.${NC} 'ctrl-j: IME ON with Romaji conversion' を有効にする"
 echo ""
 
 echo -e "${YELLOW}アクセシビリティ権限の設定:${NC}"

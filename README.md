@@ -25,7 +25,7 @@ ctrl-j を押すことで英数モードから IME をオンにし、変換確�
 
 - macOS
 - [Karabiner-Elements](https://karabiner-elements.pqrs.org/) がインストール済み
-- Google 日本語入力（高度版を使う場合）
+- Google 日本語入力
 
 ## クイックスタート（推奨） 🚀
 
@@ -53,7 +53,7 @@ cd mozc-modeless-macos
 
 1. **Karabiner-Elements** を開く
 2. **Complex Modifications** → **Add rule** をクリック
-3. **「ctrl-j: IME ON with Romaji conversion (advanced)」** を有効にする
+3. **「ctrl-j: IME ON with Romaji conversion」** を有効にする
 
 ### 4. アクセシビリティ権限を設定
 
@@ -122,11 +122,11 @@ cp modeless-ime.json ~/.config/karabiner/assets/complex_modifications/
 
 1. **Karabiner-Elements** を開く
 2. **Complex Modifications** → **Add rule** をクリック
-3. **「ctrl-j: IME ON with Romaji conversion (advanced)」** を有効にする
+3. **「ctrl-j: IME ON with Romaji conversion」** を有効にする
 
 #### 5. アクセシビリティ権限を付与
 
-高度版はキーボードイベントの送信のため、アクセシビリティ権限が必要です。
+キーボードイベントの送信のため、アクセシビリティ権限が必要です。
 
 **重要な注意点:**
 最近のバージョンの Karabiner-Elements では、`karabiner_grabber` という名前の実行ファイルは存在しません。代わりに **Karabiner-Elements Privileged Daemons v2.app** がその役割を担っています。
@@ -206,7 +206,7 @@ cat ~/.local/bin/mozc-modeless-macos/debug.log
 1. **Karabiner-Elements でルールが有効になっているか**
    - Karabiner-Elements を開く
    - Complex Modifications タブを確認
-   - "ctrl-j: IME ON with Romaji conversion (advanced)" が有効（緑のチェックマーク）になっているか
+   - "ctrl-j: IME ON with Romaji conversion" が有効（緑のチェックマーク）になっているか
 
 2. **デバッグログを確認**
    ```bash
@@ -226,7 +226,7 @@ cat ~/.local/bin/mozc-modeless-macos/debug.log
    open /Applications/Karabiner-Elements.app
    ```
 
-5. **アクセシビリティ権限が付与されているか（高度版のみ）**
+5. **アクセシビリティ権限が付与されているか**
    - システム設定 → プライバシーとセキュリティ → アクセシビリティ
    - Karabiner-Elements と Karabiner-Elements Privileged Daemons v2 にチェックが入っているか
 
