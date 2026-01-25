@@ -208,6 +208,137 @@ func extractRomajiFromEnd(_ text: String) -> (romaji: String, deleteCount: Int)?
 - Backspace 送信時は `deleteCount` を使用
 - IME には抽出された `romaji` のみを送信
 
+### 課題6: 削除処理の速度改善
+
+**問題:**
+Ctrl-j を押したときに、ローマ字をBackspaceで1文字ずつ削除すると時間がかかる。
+- 10文字削除: 約200ms
+- 20文字削除: 約400ms
+
+**解決策1: Backspace → 選択方式への変更**
+
+Backspaceで削除するのではなく、Shift+Left で選択してからIME入力で上書きする方式に変更。
+
+**変更前（Backspace方式）:**
+```swift
+// deleteCount の文字数分 Backspace を送信
+for i in 0..<deleteCount {
+    sendKeyPress(kVK_Delete)
+    usleep(10000) // 10ms待機
+}
+```
+
+**変更後（選択方式）:**
+```swift
+// deleteCount の文字数分を Shift+Left で選択
+for _ in 0..<deleteCount {
+    sendKeyPress(kVK_LeftArrow, withModifiers: .maskShift)
+}
+// IME入力時に選択範囲が自動的に上書きされる
+```
+
+**解決策2: 高速選択関数の実装**
+
+Shift+Left の待機時間を短縮した専用関数を実装。
+
+```swift
+// 高速選択用の関数（確実性重視で待機時間短縮）
+func selectLeftFast(_ count: Int) {
+    let source = CGEventSource(stateID: .hidSystemState)
+
+    for _ in 0..<count {
+        let keyDown = CGEvent(keyboardEventSource: source, virtualKey: kVK_LeftArrow, keyDown: true)
+        let keyUp = CGEvent(keyboardEventSource: source, virtualKey: kVK_LeftArrow, keyDown: false)
+
+        keyDown?.flags = .maskShift
+        keyUp?.flags = .maskShift
+
+        keyDown?.post(tap: .cghidEventTap)
+        usleep(2000) // 2ms待機（従来の5msから短縮）
+        keyUp?.post(tap: .cghidEventTap)
+        usleep(1000) // 1ms待機（従来の5msから短縮）
+    }
+}
+```
+
+**パフォーマンス改善:**
+
+| 文字数 | Backspace方式 | 選択方式（通常） | 選択方式（高速） |
+|--------|--------------|----------------|----------------|
+| 10文字 | 200ms        | 100ms          | **30ms**       |
+| 20文字 | 400ms        | 200ms          | **60ms**       |
+
+**改善のポイント:**
+- 1文字あたりの処理時間: 20ms → 10ms → **3ms**
+- 視覚的にもスムーズ（削除→入力ではなく、選択→上書き）
+- 確実性を維持（キーリピート方式ではなく、keyDown/keyUpを確実に送信）
+
+### 課題7: 選択状態でのキー入力による破壊（重大なバグ）
+
+**問題:**
+課題6で実装した選択方式（Shift+Left）には、重大な不具合があった。
+
+- Ctrl-j実行中、Shift+Leftで選択状態になった瞬間にユーザーがキー入力すると、選択範囲が上書き削除される
+- 編集中の情報がすべて壊れてしまう
+- 選択状態の時間（約200ms）の間、ユーザー入力と競合するリスクがある
+
+**再現手順:**
+1. テキストを入力（例: `path/to/file.txt`）
+2. Ctrl-j を押す
+3. 選択状態になった瞬間に任意のキーを入力
+4. → 選択範囲がすべて削除されてしまう
+
+**解決策: 選択方式 → 高速Backspace方式**
+
+選択状態を作らず、Backspaceで直接削除する方式に変更。待機時間は短縮したまま維持。
+
+**変更前（選択方式）:**
+```swift
+// 選択状態を作る（この間にユーザー入力があると壊れる）
+func selectLeftFast(_ count: Int) {
+    for _ in 0..<count {
+        let keyDown = CGEvent(keyboardEventSource: source, virtualKey: kVK_LeftArrow, keyDown: true)
+        let keyUp = CGEvent(keyboardEventSource: source, virtualKey: kVK_LeftArrow, keyDown: false)
+        keyDown?.flags = .maskShift  // 選択状態にする
+        // ...
+    }
+}
+```
+
+**変更後（高速Backspace方式）:**
+```swift
+// 選択状態を作らず即座に削除（ユーザー入力と競合しない）
+func deleteFast(_ count: Int) {
+    for _ in 0..<count {
+        let keyDown = CGEvent(keyboardEventSource: source, virtualKey: kVK_Delete, keyDown: true)
+        let keyUp = CGEvent(keyboardEventSource: source, virtualKey: kVK_Delete, keyDown: false)
+        // Shiftフラグなし = 選択状態にならない
+        keyDown?.post(tap: .cghidEventTap)
+        usleep(2000)
+        keyUp?.post(tap: .cghidEventTap)
+        usleep(1000)
+    }
+}
+```
+
+**解決のポイント:**
+- 選択状態を作らないため、ユーザー入力による上書きが発生しない
+- Backspaceは即座に文字を削除するため、視覚的にも安全
+- 待機時間は同じ（3ms/文字）なので、パフォーマンスは維持
+
+**パフォーマンス比較:**
+
+| 方式 | 20文字削除 | 選択状態の時間 | ユーザー入力リスク |
+|------|-----------|---------------|------------------|
+| 通常のBackspace | 400ms | なし | なし |
+| 選択方式 | 60ms | 約200ms | **あり（破壊的）** |
+| 高速Backspace | 60ms | なし | **なし** |
+
+**教訓:**
+- パフォーマンス最適化は重要だが、安全性を犠牲にしてはいけない
+- ユーザー入力との競合を常に考慮する必要がある
+- 選択状態は便利だが、非同期処理では危険
+
 ## アーキテクチャ
 
 ### システム構成

@@ -50,6 +50,21 @@ func sendKeyPress(_ keyCode: CGKeyCode, withModifiers modifiers: CGEventFlags = 
     usleep(5000)
 }
 
+// 高速Backspace用の関数（ユーザー入力との競合を防ぐため選択方式から変更）
+func deleteFast(_ count: Int) {
+    let source = CGEventSource(stateID: .hidSystemState)
+
+    for _ in 0..<count {
+        let keyDown = CGEvent(keyboardEventSource: source, virtualKey: kVK_Delete, keyDown: true)
+        let keyUp = CGEvent(keyboardEventSource: source, virtualKey: kVK_Delete, keyDown: false)
+
+        keyDown?.post(tap: .cghidEventTap)
+        usleep(2000) // 2ms待機（高速化）
+        keyUp?.post(tap: .cghidEventTap)
+        usleep(1000) // 1ms待機（高速化）
+    }
+}
+
 // 文字からキーコードへの変換マップ
 func getKeyCode(for char: Character) -> CGKeyCode? {
     let mapping: [Character: CGKeyCode] = [
@@ -227,13 +242,9 @@ func main() {
     sendKeyPress(0x7C) // Right arrow
     usleep(50000) // 50ms待機
 
-    // deleteCount の文字数分 Backspace を送信（/ も含む）
-    writeDebugLog("🔙 Backspaceを\(deleteCount)回送信")
-    for i in 0..<deleteCount {
-        sendKeyPress(kVK_Delete)
-        writeDebugLog("  Backspace \(i+1)/\(deleteCount)")
-        usleep(10000) // 10ms待機
-    }
+    // deleteCount の文字数分を高速Backspaceで削除（選択状態を作らないため安全）
+    writeDebugLog("🔙 Backspaceで\(deleteCount)文字を削除（高速モード）")
+    deleteFast(deleteCount)
     usleep(50000) // 50ms待機
 
     // IMEをオン
@@ -242,16 +253,14 @@ func main() {
     usleep(150000) // 150ms待機（IME起動を待つ）
 
     // ローマ字を1文字ずつ送信
-    writeDebugLog("⌨️  ローマ字を再送信: \(romaji)")
+    writeDebugLog("⌨️  ローマ字を再送信: \(romaji) (\(romaji.count)文字)")
     for char in romaji {
         if let keyCode = getKeyCode(for: char) {
             // Shiftキーが必要な文字の場合
             if needsShift(char) {
                 sendKeyPress(keyCode, withModifiers: .maskShift)
-                writeDebugLog("  送信: \(char) (with Shift)")
             } else {
                 sendKeyPress(keyCode)
-                writeDebugLog("  送信: \(char)")
             }
         } else {
             writeDebugLog("  ⚠️ キーコード未定義: \(char)")
@@ -259,10 +268,9 @@ func main() {
     }
 
     // スペースキーを送信して変換
-    writeDebugLog("␣ スペースキーを送信して変換")
     usleep(50000) // 50ms待機（ローマ字入力完了を待つ）
     sendKeyPress(kVK_Space)
-    writeDebugLog("  変換確定")
+    writeDebugLog("␣ 変換完了")
 
     writeDebugLog("=== convert-romaji-clipboard.swift 終了 ===\n")
 }
