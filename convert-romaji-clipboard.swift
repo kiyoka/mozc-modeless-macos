@@ -50,16 +50,13 @@ func sendKeyPress(_ keyCode: CGKeyCode, withModifiers modifiers: CGEventFlags = 
     usleep(5000)
 }
 
-// 高速選択用の関数（確実性重視で待機時間短縮）
-func selectLeftFast(_ count: Int) {
+// 高速Backspace用の関数（ユーザー入力との競合を防ぐため選択方式から変更）
+func deleteFast(_ count: Int) {
     let source = CGEventSource(stateID: .hidSystemState)
 
     for _ in 0..<count {
-        let keyDown = CGEvent(keyboardEventSource: source, virtualKey: kVK_LeftArrow, keyDown: true)
-        let keyUp = CGEvent(keyboardEventSource: source, virtualKey: kVK_LeftArrow, keyDown: false)
-
-        keyDown?.flags = .maskShift
-        keyUp?.flags = .maskShift
+        let keyDown = CGEvent(keyboardEventSource: source, virtualKey: kVK_Delete, keyDown: true)
+        let keyUp = CGEvent(keyboardEventSource: source, virtualKey: kVK_Delete, keyDown: false)
 
         keyDown?.post(tap: .cghidEventTap)
         usleep(2000) // 2ms待機（高速化）
@@ -245,9 +242,9 @@ func main() {
     sendKeyPress(0x7C) // Right arrow
     usleep(50000) // 50ms待機
 
-    // deleteCount の文字数分を Shift+Left で選択（高速選択関数を使用）
-    writeDebugLog("◀️  Shift+Leftで\(deleteCount)文字を選択（高速モード）")
-    selectLeftFast(deleteCount)
+    // deleteCount の文字数分を高速Backspaceで削除（選択状態を作らないため安全）
+    writeDebugLog("🔙 Backspaceで\(deleteCount)文字を削除（高速モード）")
+    deleteFast(deleteCount)
     usleep(50000) // 50ms待機
 
     // IMEをオン
