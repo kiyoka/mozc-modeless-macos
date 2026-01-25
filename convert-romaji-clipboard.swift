@@ -256,16 +256,14 @@ func main() {
     usleep(150000) // 150ms待機（IME起動を待つ）
 
     // ローマ字を1文字ずつ送信
-    writeDebugLog("⌨️  ローマ字を再送信: \(romaji)")
+    writeDebugLog("⌨️  ローマ字を再送信: \(romaji) (\(romaji.count)文字)")
     for char in romaji {
         if let keyCode = getKeyCode(for: char) {
             // Shiftキーが必要な文字の場合
             if needsShift(char) {
                 sendKeyPress(keyCode, withModifiers: .maskShift)
-                writeDebugLog("  送信: \(char) (with Shift)")
             } else {
                 sendKeyPress(keyCode)
-                writeDebugLog("  送信: \(char)")
             }
         } else {
             writeDebugLog("  ⚠️ キーコード未定義: \(char)")
@@ -273,10 +271,9 @@ func main() {
     }
 
     // スペースキーを送信して変換
-    writeDebugLog("␣ スペースキーを送信して変換")
     usleep(50000) // 50ms待機（ローマ字入力完了を待つ）
     sendKeyPress(kVK_Space)
-    writeDebugLog("  変換確定")
+    writeDebugLog("␣ 変換完了")
 
     writeDebugLog("=== convert-romaji-clipboard.swift 終了 ===\n")
 }
