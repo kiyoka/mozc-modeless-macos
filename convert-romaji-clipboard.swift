@@ -52,6 +52,17 @@ func writeDebugLog(_ message: String) {
     }
 }
 
+// Karabiner変数を設定する（karabiner_cliを使用）
+func setKarabinerVariable(_ name: String, value: Int) {
+    let task = Process()
+    task.executableURL = URL(fileURLWithPath: "/Library/Application Support/org.pqrs/Karabiner-Elements/bin/karabiner_cli")
+    task.arguments = ["--set-variables", "{\"\(name)\": \(value)}"]
+    task.standardOutput = FileHandle.nullDevice
+    task.standardError = FileHandle.nullDevice
+    try? task.run()
+    task.waitUntilExit()
+}
+
 // キーストロークを送信する関数
 func sendKeyPress(_ keyCode: CGKeyCode, withModifiers modifiers: CGEventFlags = []) {
     let source = CGEventSource(stateID: .hidSystemState)
@@ -182,6 +193,7 @@ func selectAndCopyWord() -> String? {
     writeDebugLog("Cmd+C でコピー")
     sendKeyPress(kVK_ANSI_C, withModifiers: .maskCommand)
     sendKeyPress(0x7C) // Right arrow - 選択解除（コピー直後）
+    setKarabinerVariable("ime_converting", value: 0) // キーブロック解除（選択解除直後）
     usleep(50000) // 50ms待機（クリップボード書き込み完了を待つ）
     writeDebugLog("⏱ クリップボードコピー＋選択解除完了: \(elapsedMs())")
 
@@ -249,6 +261,7 @@ func main() {
     if !trusted {
         writeDebugLog("❌ Accessibility権限がありません")
         print("Accessibility権限が必要です")
+        setKarabinerVariable("ime_converting", value: 0) // 安全のため解除
         closeDebugLog()
         exit(1)
     }
@@ -257,6 +270,7 @@ func main() {
     // 単語を選択してコピー
     guard let selectedText = selectAndCopyWord() else {
         writeDebugLog("⚠️ テキスト選択失敗 -> 通常のIMEオンのみ")
+        setKarabinerVariable("ime_converting", value: 0) // 安全のため解除
         sendKeyPress(kVK_JIS_Kana)
         closeDebugLog()
         exit(0)
@@ -268,6 +282,7 @@ func main() {
     // 選択されたテキストの末尾からローマ字を抽出
     guard let result = extractRomajiFromEnd(selectedText) else {
         writeDebugLog("⚠️ 末尾にローマ字なし: \(selectedText) -> 通常のIMEオンのみ")
+        setKarabinerVariable("ime_converting", value: 0) // 安全のため解除
         sendKeyPress(kVK_JIS_Kana)
         closeDebugLog()
         exit(0)
