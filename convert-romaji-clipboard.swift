@@ -177,11 +177,13 @@ func selectAndCopyWord() -> String? {
     usleep(50000) // 50ms待機
     writeDebugLog("⏱ 単語選択完了: \(elapsedMs())")
 
-    // Cmd+C でコピー
+    // Cmd+C でコピー → 直後に Right arrow で選択解除（選択状態を最小化）
+    // CGEventはキューに積まれるため、Cmd+CのコピーはRight arrow処理前に完了する
     writeDebugLog("Cmd+C でコピー")
     sendKeyPress(kVK_ANSI_C, withModifiers: .maskCommand)
-    usleep(50000) // 50ms待機
-    writeDebugLog("⏱ クリップボードコピー完了: \(elapsedMs())")
+    sendKeyPress(0x7C) // Right arrow - 選択解除（コピー直後）
+    usleep(50000) // 50ms待機（クリップボード書き込み完了を待つ）
+    writeDebugLog("⏱ クリップボードコピー＋選択解除完了: \(elapsedMs())")
 
     // クリップボードから取得
     let selectedText = getClipboardString()
@@ -266,8 +268,6 @@ func main() {
     // 選択されたテキストの末尾からローマ字を抽出
     guard let result = extractRomajiFromEnd(selectedText) else {
         writeDebugLog("⚠️ 末尾にローマ字なし: \(selectedText) -> 通常のIMEオンのみ")
-        // 選択を解除（右矢印）
-        sendKeyPress(0x7C) // Right arrow
         sendKeyPress(kVK_JIS_Kana)
         closeDebugLog()
         exit(0)
@@ -277,12 +277,6 @@ func main() {
     let deleteCount = result.deleteCount
 
     writeDebugLog("✅ 検出されたローマ字: \(romaji) (文字数: \(romaji.count), 削除文字数: \(deleteCount))")
-
-    // 選択を解除（右矢印でカーソル位置を選択範囲の最後に移動）
-    writeDebugLog("➡️  選択を解除")
-    sendKeyPress(0x7C) // Right arrow
-    usleep(20000) // 20ms待機
-    writeDebugLog("⏱ 選択解除完了: \(elapsedMs())")
 
     // deleteCount の文字数分を高速Backspaceで削除（選択状態を作らないため安全）
     writeDebugLog("🔙 Backspaceで\(deleteCount)文字を削除（高速モード）")
