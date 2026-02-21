@@ -50,6 +50,21 @@ func sendKeyPress(_ keyCode: CGKeyCode, withModifiers modifiers: CGEventFlags = 
     usleep(5000)
 }
 
+// ローマ字入力専用の高速キー送信（deleteFastと同じ間隔で高速化）
+func sendRomajiChar(_ keyCode: CGKeyCode, withModifiers modifiers: CGEventFlags = []) {
+    let source = CGEventSource(stateID: .hidSystemState)
+    let keyDown = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: true)
+    let keyUp = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: false)
+
+    keyDown?.flags = modifiers
+    keyUp?.flags = modifiers
+
+    keyDown?.post(tap: .cghidEventTap)
+    usleep(2000) // 2ms待機（deleteFastと同じ）
+    keyUp?.post(tap: .cghidEventTap)
+    usleep(1000) // 1ms待機（deleteFastと同じ）
+}
+
 // 高速Backspace用の関数（ユーザー入力との競合を防ぐため選択方式から変更）
 func deleteFast(_ count: Int) {
     let source = CGEventSource(stateID: .hidSystemState)
@@ -136,17 +151,17 @@ func selectAndCopyWord() -> String? {
 
     // クリップボードをクリア（空文字列を設定）
     setClipboardString("")
-    usleep(50000) // 50ms待機
+    usleep(20000) // 20ms待機
 
     // Cmd+Shift+Left で単語を選択
     writeDebugLog("Cmd+Shift+Left で単語選択")
     sendKeyPress(kVK_LeftArrow, withModifiers: [.maskCommand, .maskShift])
-    usleep(100000) // 100ms待機
+    usleep(50000) // 50ms待機
 
     // Cmd+C でコピー
     writeDebugLog("Cmd+C でコピー")
     sendKeyPress(kVK_ANSI_C, withModifiers: .maskCommand)
-    usleep(100000) // 100ms待機
+    usleep(50000) // 50ms待機
 
     // クリップボードから取得
     let selectedText = getClipboardString()
@@ -240,27 +255,27 @@ func main() {
     // 選択を解除（右矢印でカーソル位置を選択範囲の最後に移動）
     writeDebugLog("➡️  選択を解除")
     sendKeyPress(0x7C) // Right arrow
-    usleep(50000) // 50ms待機
+    usleep(20000) // 20ms待機
 
     // deleteCount の文字数分を高速Backspaceで削除（選択状態を作らないため安全）
     writeDebugLog("🔙 Backspaceで\(deleteCount)文字を削除（高速モード）")
     deleteFast(deleteCount)
-    usleep(50000) // 50ms待機
+    usleep(20000) // 20ms待機
 
     // IMEをオン
     writeDebugLog("🈴 IMEをオン")
     sendKeyPress(kVK_JIS_Kana)
     usleep(150000) // 150ms待機（IME起動を待つ）
 
-    // ローマ字を1文字ずつ送信
+    // ローマ字を1文字ずつ高速送信（sendRomajiChar: 3ms/文字）
     writeDebugLog("⌨️  ローマ字を再送信: \(romaji) (\(romaji.count)文字)")
     for char in romaji {
         if let keyCode = getKeyCode(for: char) {
             // Shiftキーが必要な文字の場合
             if needsShift(char) {
-                sendKeyPress(keyCode, withModifiers: .maskShift)
+                sendRomajiChar(keyCode, withModifiers: .maskShift)
             } else {
-                sendKeyPress(keyCode)
+                sendRomajiChar(keyCode)
             }
         } else {
             writeDebugLog("  ⚠️ キーコード未定義: \(char)")
@@ -268,7 +283,7 @@ func main() {
     }
 
     // スペースキーを送信して変換
-    usleep(50000) // 50ms待機（ローマ字入力完了を待つ）
+    usleep(20000) // 20ms待機（ローマ字入力完了を待つ）
     sendKeyPress(kVK_Space)
     writeDebugLog("␣ 変換完了")
 
