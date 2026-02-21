@@ -10,28 +10,45 @@ let kVK_ANSI_C: CGKeyCode = 0x08
 let kVK_LeftArrow: CGKeyCode = 0x7B
 let kVK_Space: CGKeyCode = 0x31
 
-// デバッグログを書き込む関数
-func writeDebugLog(_ message: String) {
+// 計測用: スクリプト開始時刻
+var scriptStartTime = Date()
+
+// 開始時刻からの経過時間をmsで返す
+func elapsedMs() -> String {
+    let ms = Int(Date().timeIntervalSince(scriptStartTime) * 1000)
+    return "+\(ms)ms"
+}
+
+// ログファイルハンドル（開きっぱなし）
+var logFileHandle: FileHandle? = nil
+
+// ログファイルを開く（スクリプト開始時に1回だけ呼ぶ）
+func openDebugLog() {
     let logDir = NSHomeDirectory() + "/.local/bin/mozc-modeless-macos"
     let logPath = logDir + "/debug.log"
-    let timestamp = Date()
-    let logMessage = "[\(timestamp)] \(message)\n"
 
-    // ログディレクトリが存在しない場合は作成
     if !FileManager.default.fileExists(atPath: logDir) {
         try? FileManager.default.createDirectory(atPath: logDir, withIntermediateDirectories: true, attributes: nil)
     }
+    if !FileManager.default.fileExists(atPath: logPath) {
+        FileManager.default.createFile(atPath: logPath, contents: nil)
+    }
+    logFileHandle = FileHandle(forWritingAtPath: logPath)
+    logFileHandle?.seekToEndOfFile()
+}
 
+// ログファイルを閉じる（スクリプト終了時に1回だけ呼ぶ）
+func closeDebugLog() {
+    logFileHandle?.closeFile()
+    logFileHandle = nil
+}
+
+// デバッグログを書き込む関数
+func writeDebugLog(_ message: String) {
+    let timestamp = Date()
+    let logMessage = "[\(timestamp)] \(message)\n"
     if let data = logMessage.data(using: .utf8) {
-        if FileManager.default.fileExists(atPath: logPath) {
-            if let fileHandle = FileHandle(forWritingAtPath: logPath) {
-                fileHandle.seekToEndOfFile()
-                fileHandle.write(data)
-                fileHandle.closeFile()
-            }
-        } else {
-            try? data.write(to: URL(fileURLWithPath: logPath))
-        }
+        logFileHandle?.write(data)
     }
 }
 
@@ -50,6 +67,21 @@ func sendKeyPress(_ keyCode: CGKeyCode, withModifiers modifiers: CGEventFlags = 
     usleep(5000)
 }
 
+// ローマ字入力専用の高速キー送信（deleteFastと同じ間隔で高速化）
+func sendRomajiChar(_ keyCode: CGKeyCode, withModifiers modifiers: CGEventFlags = []) {
+    let source = CGEventSource(stateID: .hidSystemState)
+    let keyDown = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: true)
+    let keyUp = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: false)
+
+    keyDown?.flags = modifiers
+    keyUp?.flags = modifiers
+
+    keyDown?.post(tap: .cghidEventTap)
+    usleep(0) // 0ms（CGEventオーバーヘッド計測用）
+    keyUp?.post(tap: .cghidEventTap)
+    usleep(0) // 0ms（CGEventオーバーヘッド計測用）
+}
+
 // 高速Backspace用の関数（ユーザー入力との競合を防ぐため選択方式から変更）
 func deleteFast(_ count: Int) {
     let source = CGEventSource(stateID: .hidSystemState)
@@ -59,9 +91,9 @@ func deleteFast(_ count: Int) {
         let keyUp = CGEvent(keyboardEventSource: source, virtualKey: kVK_Delete, keyDown: false)
 
         keyDown?.post(tap: .cghidEventTap)
-        usleep(2000) // 2ms待機（高速化）
+        usleep(0) // 0ms（CGEventオーバーヘッド計測用）
         keyUp?.post(tap: .cghidEventTap)
-        usleep(1000) // 1ms待機（高速化）
+        usleep(0) // 0ms（CGEventオーバーヘッド計測用）
     }
 }
 
@@ -136,17 +168,20 @@ func selectAndCopyWord() -> String? {
 
     // クリップボードをクリア（空文字列を設定）
     setClipboardString("")
-    usleep(50000) // 50ms待機
+    usleep(20000) // 20ms待機
+    writeDebugLog("⏱ クリップボードクリア完了: \(elapsedMs())")
 
     // Cmd+Shift+Left で単語を選択
     writeDebugLog("Cmd+Shift+Left で単語選択")
     sendKeyPress(kVK_LeftArrow, withModifiers: [.maskCommand, .maskShift])
-    usleep(100000) // 100ms待機
+    usleep(50000) // 50ms待機
+    writeDebugLog("⏱ 単語選択完了: \(elapsedMs())")
 
     // Cmd+C でコピー
     writeDebugLog("Cmd+C でコピー")
     sendKeyPress(kVK_ANSI_C, withModifiers: .maskCommand)
-    usleep(100000) // 100ms待機
+    usleep(50000) // 50ms待機
+    writeDebugLog("⏱ クリップボードコピー完了: \(elapsedMs())")
 
     // クリップボードから取得
     let selectedText = getClipboardString()
@@ -201,6 +236,8 @@ func extractRomajiFromEnd(_ text: String) -> (romaji: String, deleteCount: Int)?
 
 // メイン処理
 func main() {
+    scriptStartTime = Date()
+    openDebugLog()
     writeDebugLog("=== convert-romaji-clipboard.swift 開始 ===")
 
     // Accessibility権限チェック
@@ -210,6 +247,7 @@ func main() {
     if !trusted {
         writeDebugLog("❌ Accessibility権限がありません")
         print("Accessibility権限が必要です")
+        closeDebugLog()
         exit(1)
     }
     writeDebugLog("✅ Accessibility権限OK")
@@ -218,10 +256,12 @@ func main() {
     guard let selectedText = selectAndCopyWord() else {
         writeDebugLog("⚠️ テキスト選択失敗 -> 通常のIMEオンのみ")
         sendKeyPress(kVK_JIS_Kana)
+        closeDebugLog()
         exit(0)
     }
 
     writeDebugLog("選択されたテキスト: \(selectedText)")
+    writeDebugLog("⏱ テキスト取得フェーズ完了: \(elapsedMs())")
 
     // 選択されたテキストの末尾からローマ字を抽出
     guard let result = extractRomajiFromEnd(selectedText) else {
@@ -229,6 +269,7 @@ func main() {
         // 選択を解除（右矢印）
         sendKeyPress(0x7C) // Right arrow
         sendKeyPress(kVK_JIS_Kana)
+        closeDebugLog()
         exit(0)
     }
 
@@ -240,39 +281,45 @@ func main() {
     // 選択を解除（右矢印でカーソル位置を選択範囲の最後に移動）
     writeDebugLog("➡️  選択を解除")
     sendKeyPress(0x7C) // Right arrow
-    usleep(50000) // 50ms待機
+    usleep(20000) // 20ms待機
+    writeDebugLog("⏱ 選択解除完了: \(elapsedMs())")
 
     // deleteCount の文字数分を高速Backspaceで削除（選択状態を作らないため安全）
     writeDebugLog("🔙 Backspaceで\(deleteCount)文字を削除（高速モード）")
     deleteFast(deleteCount)
-    usleep(50000) // 50ms待機
+    usleep(20000) // 20ms待機
+    writeDebugLog("⏱ 削除完了: \(elapsedMs())")
 
     // IMEをオン
     writeDebugLog("🈴 IMEをオン")
     sendKeyPress(kVK_JIS_Kana)
-    usleep(150000) // 150ms待機（IME起動を待つ）
+    usleep(80000) // 80ms待機（IME起動を待つ）
+    writeDebugLog("⏱ IME起動完了: \(elapsedMs())")
 
-    // ローマ字を1文字ずつ送信
+    // ローマ字を1文字ずつ高速送信（sendRomajiChar: 3ms/文字）
     writeDebugLog("⌨️  ローマ字を再送信: \(romaji) (\(romaji.count)文字)")
     for char in romaji {
         if let keyCode = getKeyCode(for: char) {
             // Shiftキーが必要な文字の場合
             if needsShift(char) {
-                sendKeyPress(keyCode, withModifiers: .maskShift)
+                sendRomajiChar(keyCode, withModifiers: .maskShift)
             } else {
-                sendKeyPress(keyCode)
+                sendRomajiChar(keyCode)
             }
         } else {
             writeDebugLog("  ⚠️ キーコード未定義: \(char)")
         }
     }
+    writeDebugLog("⏱ ローマ字送信完了: \(elapsedMs())")
 
     // スペースキーを送信して変換
-    usleep(50000) // 50ms待機（ローマ字入力完了を待つ）
+    usleep(20000) // 20ms待機（ローマ字入力完了を待つ）
     sendKeyPress(kVK_Space)
     writeDebugLog("␣ 変換完了")
+    writeDebugLog("⏱ 総経過時間: \(elapsedMs())")
 
     writeDebugLog("=== convert-romaji-clipboard.swift 終了 ===\n")
+    closeDebugLog()
 }
 
 main()
