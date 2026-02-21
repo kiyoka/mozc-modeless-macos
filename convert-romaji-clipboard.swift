@@ -265,7 +265,7 @@ func main() {
     // IMEをオン
     writeDebugLog("🈴 IMEをオン")
     sendKeyPress(kVK_JIS_Kana)
-    usleep(150000) // 150ms待機（IME起動を待つ）
+    usleep(80000) // 80ms待機（IME起動を待つ）
 
     // ローマ字を1文字ずつ高速送信（sendRomajiChar: 3ms/文字）
     writeDebugLog("⌨️  ローマ字を再送信: \(romaji) (\(romaji.count)文字)")
