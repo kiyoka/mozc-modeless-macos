@@ -77,9 +77,9 @@ func sendRomajiChar(_ keyCode: CGKeyCode, withModifiers modifiers: CGEventFlags 
     keyUp?.flags = modifiers
 
     keyDown?.post(tap: .cghidEventTap)
-    usleep(2000) // 2ms待機（deleteFastと同じ）
+    usleep(0) // 0ms（CGEventオーバーヘッド計測用）
     keyUp?.post(tap: .cghidEventTap)
-    usleep(1000) // 1ms待機（deleteFastと同じ）
+    usleep(0) // 0ms（CGEventオーバーヘッド計測用）
 }
 
 // 高速Backspace用の関数（ユーザー入力との競合を防ぐため選択方式から変更）
@@ -91,9 +91,9 @@ func deleteFast(_ count: Int) {
         let keyUp = CGEvent(keyboardEventSource: source, virtualKey: kVK_Delete, keyDown: false)
 
         keyDown?.post(tap: .cghidEventTap)
-        usleep(2000) // 2ms待機（高速化）
+        usleep(0) // 0ms（CGEventオーバーヘッド計測用）
         keyUp?.post(tap: .cghidEventTap)
-        usleep(1000) // 1ms待機（高速化）
+        usleep(0) // 0ms（CGEventオーバーヘッド計測用）
     }
 }
 
